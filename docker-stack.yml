@@ -1,0 +1,144 @@
+version: '3.8'
+
+services:
+
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: ordersdb
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - micronet
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == manager
+
+  auth-service:
+    image: microshop/auth-service:latest
+    ports:
+      - "8001:8001"
+    networks:
+      - micronet
+    deploy:
+      replicas: 2
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+
+  product-service:
+    image: microshop/product-service:latest
+    ports:
+      - "8002:8002"
+    networks:
+      - micronet
+    deploy:
+      replicas: 2
+      restart_policy:
+        condition: on-failure
+
+  order-service:
+    image: microshop/order-service:latest
+    ports:
+      - "8003:8003"
+    environment:
+      DB_HOST: postgres
+      DB_PORT: "5432"
+      DB_NAME: ordersdb
+      DB_USER: postgres
+      DB_PASS: postgres
+    networks:
+      - micronet
+    deploy:
+      replicas: 3
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+      update_config:
+        parallelism: 1
+        delay: 10s
+        failure_action: rollback
+
+  user-service:
+    image: microshop/user-service:latest
+    ports:
+      - "8004:8004"
+    networks:
+      - micronet
+    deploy:
+      replicas: 2
+      restart_policy:
+        condition: on-failure
+
+  payment-service:
+    image: microshop/payment-service:latest
+    ports:
+      - "8005:8005"
+    networks:
+      - micronet
+    deploy:
+      replicas: 2
+      restart_policy:
+        condition: on-failure
+
+  notification-service:
+    image: microshop/notification-service:latest
+    ports:
+      - "8006:8006"
+    networks:
+      - micronet
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+
+  frontend:
+    image: microshop/frontend:latest
+    ports:
+      - "80:80"
+    networks:
+      - micronet
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+
+  prometheus:
+    image: prom/prometheus:latest
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+      - ./monitoring/prometheus/alert.rules.yml:/etc/prometheus/alert.rules.yml
+    networks:
+      - micronet
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == manager
+
+  grafana:
+    image: grafana/grafana:latest
+    ports:
+      - "3000:3000"
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: admin
+    networks:
+      - micronet
+    deploy:
+      replicas: 1
+
+networks:
+  micronet:
+    driver: overlay
+
+volumes:
+  postgres_data:
