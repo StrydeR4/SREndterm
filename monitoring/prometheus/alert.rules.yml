@@ -1,0 +1,26 @@
+groups:
+  - name: microshop_alerts
+    rules:
+      - alert: ServiceDown
+        expr: up == 0
+        for: 30s
+        labels:
+          severity: critical
+        annotations:
+          summary: "Service {{ $labels.job }} is down"
+
+      - alert: HighOrderErrorRate
+        expr: rate(order_errors_total[1m]) > 0.1
+        for: 30s
+        labels:
+          severity: warning
+        annotations:
+          summary: "High error rate in Order Service"
+
+      - alert: HighLoginFailureRate
+        expr: rate(auth_login_total{status="failure"}[1m]) > 0.2
+        for: 30s
+        labels:
+          severity: warning
+        annotations:
+          summary: "High login failure rate"
