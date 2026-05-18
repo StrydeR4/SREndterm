@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>MicroShop Dashboard</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Segoe UI', sans-serif; background: #0f172a; color: #e2e8f0; min-height: 100vh; }
+    header { background: #1e293b; padding: 16px 32px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #334155; }
+    header h1 { font-size: 1.4rem; color: #38bdf8; letter-spacing: 1px; }
+    .status-bar { display: flex; gap: 12px; }
+    .badge { padding: 4px 12px; border-radius: 20px; font-size: 0.75rem; font-weight: 600; }
+    .badge.ok { background: #166534; color: #86efac; }
+    .badge.err { background: #7f1d1d; color: #fca5a5; }
+    nav { display: flex; gap: 8px; padding: 16px 32px; background: #1e293b; border-bottom: 1px solid #334155; }
+    nav button { padding: 8px 20px; border: none; border-radius: 8px; cursor: pointer; font-size: 0.875rem; background: #334155; color: #94a3b8; transition: all 0.2s; }
+    nav button.active, nav button:hover { background: #38bdf8; color: #0f172a; font-weight: 600; }
+    main { padding: 32px; max-width: 1100px; margin: 0 auto; }
+    .section { display: none; }
+    .section.active { display: block; }
+    h2 { font-size: 1.2rem; color: #38bdf8; margin-bottom: 20px; }
+    .card { background: #1e293b; border-radius: 12px; padding: 20px; margin-bottom: 16px; border: 1px solid #334155; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 16px; }
+    .product-card { background: #1e293b; border-radius: 12px; padding: 20px; border: 1px solid #334155; }
+    .product-card h3 { color: #f8fafc; margin-bottom: 8px; }
+    .price { color: #34d399; font-size: 1.2rem; font-weight: 700; }
+    .stock { color: #94a3b8; font-size: 0.8rem; margin-top: 4px; }
+    .btn { display: inline-block; margin-top: 12px; padding: 8px 16px; background: #38bdf8; color: #0f172a; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 0.85rem; }
+    .btn:hover { background: #7dd3fc; }
+    .btn.red { background: #ef4444; color: white; }
+    input, select { width: 100%; padding: 10px 14px; background: #0f172a; border: 1px solid #334155; border-radius: 8px; color: #e2e8f0; font-size: 0.9rem; margin-bottom: 12px; }
+    .order-row { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #334155; font-size: 0.9rem; }
+    .tag { padding: 2px 10px; border-radius: 12px; font-size: 0.75rem; }
+    .tag.pending { background: #92400e; color: #fcd34d; }
+    .msg-box { display: flex; flex-direction: column; gap: 10px; max-height: 300px; overflow-y: auto; margin-bottom: 16px; }
+    .msg { padding: 10px 14px; border-radius: 10px; background: #334155; max-width: 75%; }
+    .msg.me { background: #0369a1; align-self: flex-end; }
+    .msg .from { font-size: 0.7rem; color: #94a3b8; margin-bottom: 4px; }
+    .health-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px; }
+    .health-card { background: #1e293b; border-radius: 10px; padding: 16px; border: 1px solid #334155; text-align: center; }
+    .health-card .svc { font-size: 0.85rem; color: #94a3b8; margin-bottom: 8px; }
+    .health-card .dot { width: 12px; height: 12px; border-radius: 50%; margin: 0 auto; }
+    .dot.green { background: #22c55e; box-shadow: 0 0 8px #22c55e; }
+    .dot.red { background: #ef4444; box-shadow: 0 0 8px #ef4444; }
+    #toast { position: fixed; bottom: 24px; right: 24px; background: #334155; color: #e2e8f0; padding: 12px 20px; border-radius: 10px; font-size: 0.875rem; display: none; z-index: 999; }
+  </style>
+</head>
+<body>
+<header>
+  <h1>MicroShop</h1>
+  <div class="status-bar" id="statusBar"></div>
+</header>
+<nav>
+  <button class="active" onclick="showSection('products', this)">Products</button>
+  <button onclick="showSection('orders', this)">Orders</button>
+  <button onclick="showSection('payments', this)">Payments</button>
+  <button onclick="showSection('notifications', this)">Notifications</button>
+  <button onclick="showSection('chat', this)">Chat</button>
+  <button onclick="showSection('health', this)">Health</button>
+  <button onclick="showSection('login', this)">Login</button>
+</nav>
+<main>
+  <div class="section active" id="products">
+    <h2>Products</h2>
+    <div class="grid" id="productGrid"><p style="color:#94a3b8">Loading...</p></div>
+  </div>
+
+  <div class="section" id="orders">
+    <h2>Create Order</h2>
+    <div class="card">
+      <input type="text" id="orderUser" placeholder="Your username (e.g. user1)" />
+      <input type="number" id="orderProduct" placeholder="Product ID (1-5)" min="1" max="5" />
+      <input type="number" id="orderQty" placeholder="Quantity" min="1" value="1" />
+      <button class="btn" onclick="createOrder()">Place Order</button>
+    </div>
+    <h2>Recent Orders</h2>
+    <div class="card" id="ordersList"><p style="color:#94a3b8">Loading...</p></div>
+  </div>
+
+  <div class="section" id="payments">
+    <h2>Process Payment</h2>
+    <div class="card">
+      <input type="number" id="payOrderId" placeholder="Order ID" min="1" />
+      <input type="text" id="payUserId" placeholder="Your username" />
+      <input type="number" id="payAmount" placeholder="Amount ($)" step="0.01" value="99.99" />
+      <button class="btn" onclick="processPayment()">Pay Now</button>
+    </div>
+    <h2>Recent Payments</h2>
+    <div class="card" id="paymentsList"><p style="color:#94a3b8">Loading...</p></div>
+  </div>
+
+  <div class="section" id="notifications">
+    <h2>Send Notification</h2>
+    <div class="card">
+      <input type="text" id="notifUser" placeholder="User ID" />
+      <select id="notifType">
+        <option value="email">Email</option>
+        <option value="sms">SMS</option>
+        <option value="push">Push</option>
+      </select>
+      <input type="text" id="notifMsg" placeholder="Message" />
+      <button class="btn" onclick="sendNotification()">Send</button>
+    </div>
+    <h2>Recent Notifications</h2>
+    <div class="card" id="notificationsList"><p style="color:#94a3b8">Loading...</p></div>
+  </div>
+
+  <div class="section" id="chat">
+    <h2>User Chat</h2>
+    <div class="card">
+      <div class="msg-box" id="msgBox"></div>
+      <input type="text" id="chatFrom" placeholder="Your username" />
+      <input type="text" id="chatTo" placeholder="To username" />
+      <input type="text" id="chatMsg" placeholder="Message..." onkeydown="if(event.key==='Enter')sendMsg()" />
+      <button class="btn" onclick="sendMsg()">Send</button>
+    </div>
+  </div>
+
+  <div class="section" id="health">
+    <h2>Service Health</h2>
+    <div class="health-grid" id="healthGrid"><p style="color:#94a3b8">Checking...</p></div>
+    <br>
+    <button class="btn" onclick="checkHealth()">Refresh</button>
+    <br><br>
+    <p style="color:#94a3b8; font-size:0.85rem;">
+      Grafana: <a href="http://localhost:3005" target="_blank" style="color:#38bdf8">localhost:3001</a> &nbsp;|&nbsp;
+      Prometheus: <a href="http://localhost:9090" target="_blank" style="color:#38bdf8">localhost:9090</a>
+    </p>
+  </div>
+
+  <div class="section" id="login">
+    <h2>Login</h2>
+    <div class="card" style="max-width:400px">
+      <input type="text" id="loginUser" placeholder="Username (admin / user1)" />
+      <input type="password" id="loginPass" placeholder="Password (password123 / pass1)" />
+      <button class="btn" onclick="doLogin()">Login</button>
+      <div id="loginResult" style="margin-top:12px; color:#94a3b8; font-size:0.85rem;"></div>
+    </div>
+  </div>
+</main>
+<div id="toast"></div>
+
+<script>
+const API = {
+  auth:         '/api/auth',
+  product:      '/api/products',
+  order:        '/api/orders',
+  user:         '/api/users',
+  payment:      '/api/payments',
+  notification: '/api/notifications',
+}; 
+
+function toast(msg, ok=true) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.style.borderLeft = `4px solid ${ok ? '#22c55e' : '#ef4444'}`;
+  t.style.display = 'block';
+  setTimeout(() => t.style.display = 'none', 3000);
+}
+
+function showSection(id, btn) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  btn.classList.add('active');
+  if (id === 'products') loadProducts();
+  if (id === 'orders') loadOrders();
+  if (id === 'chat') loadMessages();
+  if (id === 'health') checkHealth();
+}
+
+async function loadProducts() {
+  try {
+    const r = await fetch(`${API.product}/products`);
+    const d = await r.json();
+    document.getElementById('productGrid').innerHTML = d.products.map(p => `
+      <div class="product-card">
+        <h3>${p.name}</h3>
+        <div class="price">$${p.price}</div>
+        <div class="stock">Stock: ${p.stock}</div>
+        <button class="btn" onclick="quickOrder(${p.id})">Order</button>
+      </div>`).join('');
+  } catch(e) { document.getElementById('productGrid').innerHTML = '<p style="color:#ef4444">Product service unavailable</p>'; }
+}
+
+function quickOrder(id) {
+  showSection('orders', document.querySelectorAll('nav button')[1]);
+  document.getElementById('orderProduct').value = id;
+}
+
+async function createOrder() {
+  const user = document.getElementById('orderUser').value;
+  const pid = document.getElementById('orderProduct').value;
+  const qty = document.getElementById('orderQty').value;
+  if (!user || !pid) { toast('Fill all fields', false); return; }
+  try {
+    const r = await fetch(`${API.order}/orders`, {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({user_id: user, product_id: parseInt(pid), quantity: parseInt(qty)})
+    });
+    const d = await r.json();
+    if (r.ok) { toast(`Order #${d.order_id} created!`); loadOrders(); }
+    else { toast(`Error: ${d.detail}`, false); }
+  } catch(e) { toast('Order service unavailable', false); }
+}
+
+async function loadOrders() {
+  try {
+    const r = await fetch(`${API.order}/orders`);
+    const d = await r.json();
+    const el = document.getElementById('ordersList');
+    if (!d.orders || d.orders.length === 0) { el.innerHTML = '<p style="color:#94a3b8">No orders yet</p>'; return; }
+    el.innerHTML = d.orders.map(o => `
+      <div class="order-row">
+        <span>#${o.id} — ${o.user_id}</span>
+        <span>Product ${o.product_id} × ${o.quantity}</span>
+        <span class="tag pending">${o.status}</span>
+      </div>`).join('');
+  } catch(e) { document.getElementById('ordersList').innerHTML = '<p style="color:#ef4444">Order service unavailable</p>'; }
+}
+
+async function processPayment() {
+  const order_id = parseInt(document.getElementById('payOrderId').value);
+  const user_id = document.getElementById('payUserId').value;
+  const amount = parseFloat(document.getElementById('payAmount').value);
+  if (!order_id || !user_id || !amount) { toast('Fill all fields', false); return; }
+  try {
+    const r = await fetch(`${API.payment}/payments`, {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({order_id, user_id, amount})
+    });
+    const d = await r.json();
+    if (r.ok) { toast(`Payment #${d.payment_id} successful!`); loadPayments(); }
+    else { toast('Payment declined', false); }
+  } catch(e) { toast('Payment service unavailable', false); }
+}
+
+async function loadPayments() {
+  try {
+    const r = await fetch(`${API.payment}/payments`);
+    const d = await r.json();
+    const el = document.getElementById('paymentsList');
+    if (!d.payments || d.payments.length === 0) { el.innerHTML = '<p style="color:#94a3b8">No payments yet</p>'; return; }
+    el.innerHTML = d.payments.map(p => `
+      <div class="row">
+        <span>#${p.id} — ${p.user_id}</span>
+        <span>Order #${p.order_id}</span>
+        <span>$${p.amount}</span>
+        <span class="tag success">${p.status}</span>
+      </div>`).join('');
+  } catch(e) { document.getElementById('paymentsList').innerHTML = '<p style="color:#ef4444">Payment service unavailable</p>'; }
+}
+
+async function sendNotification() {
+  const user_id = document.getElementById('notifUser').value;
+  const type = document.getElementById('notifType').value;
+  const message = document.getElementById('notifMsg').value;
+  if (!user_id || !message) { toast('Fill all fields', false); return; }
+  try {
+    const r = await fetch(`${API.notification}/notify`, {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({user_id, type, message})
+    });
+    if (r.ok) { toast('Notification sent!'); loadNotifications(); }
+  } catch(e) { toast('Notification service unavailable', false); }
+}
+
+async function loadNotifications() {
+  try {
+    const r = await fetch(`${API.notification}/notifications`);
+    const d = await r.json();
+    const el = document.getElementById('notificationsList');
+    if (!d.notifications || d.notifications.length === 0) { el.innerHTML = '<p style="color:#94a3b8">No notifications yet</p>'; return; }
+    el.innerHTML = d.notifications.map(n => `
+      <div class="row">
+        <span>${n.user_id}</span>
+        <span class="tag delivered">${n.type}</span>
+        <span style="color:#94a3b8;font-size:0.82rem">${n.message}</span>
+        <span class="tag success">${n.status}</span>
+      </div>`).join('');
+  } catch(e) { document.getElementById('notificationsList').innerHTML = '<p style="color:#ef4444">Notification service unavailable</p>'; }
+}
+
+async function sendMsg() {
+  const from = document.getElementById('chatFrom').value;
+  const to = document.getElementById('chatTo').value;
+  const content = document.getElementById('chatMsg').value;
+  if (!from || !to || !content) { toast('Fill all chat fields', false); return; }
+  try {
+    await fetch(`${API.user}/messages`, {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({from_user: from, to_user: to, content})
+    });
+    document.getElementById('chatMsg').value = '';
+    loadMessages();
+  } catch(e) { toast('User service unavailable', false); }
+}
+
+async function loadMessages() {
+  try {
+    const r = await fetch(`${API.user}/messages`);
+    const d = await r.json();
+    const el = document.getElementById('msgBox');
+    const me = document.getElementById('chatFrom').value;
+    el.innerHTML = d.messages.map(m => `
+      <div class="msg ${m.from === me ? 'me' : ''}">
+        <div class="from">${m.from} → ${m.to}</div>
+        ${m.content}
+      </div>`).join('');
+    el.scrollTop = el.scrollHeight;
+  } catch(e) {}
+}
+
+async function checkHealth() {
+  const services = [
+    {name: 'Auth Service', url: `${API.auth}/health`},
+    {name: 'Product Service', url: `${API.product}/health`},
+    {name: 'Order Service', url: `${API.order}/health`},
+    {name: 'User Service', url: `${API.user}/health`},
+    {name: 'Payment',      url: `${API.payment}/health`},
+    {name: 'Notification', url: `${API.notification}/health`},
+  ];
+  const bar = document.getElementById('statusBar');
+  const grid = document.getElementById('healthGrid');
+  grid.innerHTML = '';
+  bar.innerHTML = '';
+  for (const s of services) {
+    try {
+      const r = await fetch(s.url, {signal: AbortSignal.timeout(3000)});
+      const d = await r.json();
+      const ok = d.status === 'ok';
+      grid.innerHTML += `<div class="health-card"><div class="svc">${s.name}</div><div class="dot ${ok?'green':'red'}"></div><div style="margin-top:8px;font-size:0.8rem;color:${ok?'#22c55e':'#ef4444'}">${d.status}</div></div>`;
+      bar.innerHTML += `<span class="badge ${ok?'ok':'err'}">${s.name.split(' ')[0]}: ${d.status}</span>`;
+    } catch(e) {
+      grid.innerHTML += `<div class="health-card"><div class="svc">${s.name}</div><div class="dot red"></div><div style="margin-top:8px;font-size:0.8rem;color:#ef4444">unreachable</div></div>`;
+      bar.innerHTML += `<span class="badge err">${s.name.split(' ')[0]}: down</span>`;
+    }
+  }
+}
+
+async function doLogin() {
+  const u = document.getElementById('loginUser').value;
+  const p = document.getElementById('loginPass').value;
+  try {
+    const r = await fetch(`${API.auth}/login`, {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({username: u, password: p})
+    });
+    const d = await r.json();
+    const el = document.getElementById('loginResult');
+    if (r.ok) { el.style.color = '#22c55e'; el.textContent = `Logged in! Token: ${d.token}`; toast('Login successful!'); }
+    else { el.style.color = '#ef4444'; el.textContent = `${d.detail}`; toast('Login failed', false); }
+  } catch(e) { toast('Auth service unavailable', false); }
+}
+
+loadProducts();
+checkHealth();
+setInterval(checkHealth, 30000);
+</script>
+</body>
+</html>
